@@ -2,6 +2,7 @@
 
 #include "MonteCarlo.hpp"
 #include "BlackScholes/cdf.hpp"
+#include "BlackScholes/BlackScholes.hpp"
 
 #include <cassert>
 #include <cfloat>
@@ -10,82 +11,151 @@
 #include <limits>
 #include <random>
 #include <utility>
+#include <algorithm>  
 
 using namespace std;
 
-double cdf::phi(double x) {
-    // constants
-    double a1 = 0.254829592;
-    double a2 = -0.284496736;
-    double a3 = 1.421413741;
-    double a4 = -1.453152027;
-    double a5 = 1.061405429;
-    double p = 0.3275911;
+double gaussianRV() { // Doesn't work
+    double x = 0.0;
+    double y = 0.0;
+    double euclid_sq = 0.0;
 
-    // Save the sign of x
-    int sign = 1;
-    if (x < 0)
-        sign = -1;
-    x = fabs(x) / sqrt(2.0);
+    // Continue generating two uniform random variables
+    // until the square of their "euclidean distance" 
+    // is less than unity
+    do {
+        x = 2.0 * rand() / static_cast<double>(RAND_MAX) - 1;
+        y = 2.0 * rand() / static_cast<double>(RAND_MAX) - 1;
+        euclid_sq = x * x + y * y;
+    } while (euclid_sq >= 1.0);
 
-    // A&S formula 7.1.26
-    double t = 1.0 / (1.0 + p * x);
-    double y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * exp(-x * x);
-
-    return 0.5 * (1.0 + sign * y);
+    return x * sqrt(-2 * log(euclid_sq) / euclid_sq);
 }
 
-std::pair<double, double> gaussianRV(double mu, double sigma)
-{
-    constexpr double epsilon = std::numeric_limits<double>::epsilon();
-    constexpr double two_pi = 2.0 * M_PI;
-
-    //initialize the random uniform number generator (runif) in a range 0 to 1
-    static std::mt19937 rng(std::random_device{}()); // Standard mersenne_twister_engine seeded with rd()
-    static std::uniform_real_distribution<> runif(0.0, 1.0);
-
-    //create two random numbers, make sure u1 is greater than epsilon
-    double u1, u2;
-    do
-    {
-        u1 = runif(rng);
-        u2 = runif(rng);
-    } while (u1 <= epsilon);
-
-    //compute z0 and z1
-    auto mag = sigma * sqrt(-2.0 * log(u1));
-    auto z0 = mag * cos(two_pi * u2) + mu;
-    auto z1 = mag * sin(two_pi * u2) + mu;
-
-    return std::make_pair(z0, z1);
+double rand_normal(double mean, double stddev) {
+    std::random_device rd; // random device class instance, source of 'true' randomness for initializing random seed    
+    std::mt19937 eng(rd()); // Mersenne twister PRNG, initialized with seed from previous random device instance
+    std::normal_distribution<double> normal(mean, stddev); // instance of class std::normal_distribution with specific mean and stddev
+    double Z = normal(eng); // get random number with normal distribution using eng as random source
+    return Z;
 }
 
 int MCEuropeanOption::optionDuration() const {
     return maturityDate - purchaseDate;
 }
 
-
 double MCEuropeanOption::CallPrice() { // Boyle (1977)
     const int m = 10000; // # of trials
-    const int n = optionDuration(); // (T - t) days
+    const int n = 200; 
+    const double T = optionDuration(); // (T - t) years
+    double d_T = T / n;
 
     double Q = 0.0; 
     
 
     for (int i = 0; i < m; ++i) {
-        vector<int> S;
+        vector<double> S;
         S.push_back(spotPrice); 
         for (int j = 1; j < n; ++j) {
-            double S_t = S.back() * exp(interestRate - pow(volatility, 2) / 2 + volatility * gaussianRV(0, 1).first);
+            double Z = rand_normal(0, 1);
+            double S_t = S.back() * exp((interestRate - pow(volatility, 2) / 2) * d_T + volatility * Z * sqrt(d_T));
             S.push_back(S_t);
+            //if (S_t > dividendPayment) {
+            //    S.push_back(S_t - dividendPayment);
+            //}
+            //else {
+            //    break;
+            //}
+            
         }
         double payoff = S.back() - strikePrice;
-        if (payoff < 0.0) payoff = 0.0;
-
-        Q += payoff;
+        Q += std::max(payoff,0.0);
     }
 
-    return exp(-interestRate * optionDuration()) * Q / m;
+    double MC_S = exp(-interestRate * T) * Q / m;
+
+    return MC_S;
+}
+double MCEuropeanOption::CallPrice2() {
+    int m = 10000; // # of trials
+    double T = optionDuration(); // (T - t) years
+    double S_adj = spotPrice * exp((interestRate - pow(volatility, 2) / 2) * T);
+    double S_T = 0.0;
+    double payoff_sum = 0.0;
+
+    for (int i = 0; i < m; ++i) {
+        double Z = rand_normal(0,1);
+        S_T =  S_adj * exp( volatility * Z * sqrt(T));
+        payoff_sum += std::max(S_T - strikePrice, 0.0);
+    }
+
+    double MC_S = exp(-interestRate * T) * (payoff_sum / static_cast<double>(m));
+    return MC_S;
+}
+
+double MCEuropeanOption::CallPrice_Var() {
+    BSEuropeanOption BScallOption;
+    BScallOption.strikePrice = 50;
+    BScallOption.spotPrice = 50;
+    BScallOption.interestRate = 0.06;
+    BScallOption.dividendRate = 0;
+    BScallOption.volatility = sqrt(0.025);
+    BScallOption.maturityDate = 5;
+    BScallOption.purchaseDate = 0;
+    double BS_S = BScallOption.CallPrice();
+
+    const int m = 10000; // # of trials
+    const int n = 1000;
+    const double T = optionDuration(); // (T - t) days
+    const double d_T = T / n;
+
+    double Q = 0.0;
+    double q = 0.0;
+
+    for (int i = 0; i < m; ++i) {
+        vector<double> S;
+        vector<double> s; 
+        S.push_back(spotPrice);
+        s.push_back(spotPrice);
+        for (int j = 1; j < n; ++j) {
+            double Z = rand_normal(0, 1);
+            double S_t = S.back() * exp((interestRate - pow(volatility, 2) / 2) * d_T + volatility * Z * sqrt(d_T));
+            S.push_back(S_t);
+            //if (S_t > dividendPayment) {
+            //    S.push_back(S_t - dividendPayment);
+            //}
+            //else {
+            //    break;
+            //}
+            double s_t = s.back() * exp((interestRate - pow(volatility, 2) / 2) * d_T + volatility * Z * sqrt(d_T));
+            s.push_back(s_t);
+        }
+
+        double Payoff = S.back() - strikePrice;
+        if (Payoff < 0.0) Payoff = 0.0;
+        Q += Payoff;
+
+        double payoff = s.back() - strikePrice; 
+        if (payoff < 0.0) payoff = 0.0;
+        q += payoff;
+    }
+    double MC_S = exp(-interestRate * n) * Q / m;
+    double MC_s = exp(-interestRate * n) * q / m;
+    return BS_S + MC_S - MC_s;
+}
+
+double MCEuropeanOption::CallPrice_BS() {
+    BSEuropeanOption BScallOption2;
+    BScallOption2.strikePrice = 50;
+    BScallOption2.spotPrice = 50;
+    BScallOption2.interestRate = 0.06;
+    BScallOption2.dividendRate = 0;
+    BScallOption2.volatility = 0.25;
+    BScallOption2.maturityDate = 5;
+    BScallOption2.purchaseDate = 0;
+    double BS_s = BScallOption2.CallPrice();
+
+    return BS_s ;
 }
 
 void MCEuropeanOption::init() {

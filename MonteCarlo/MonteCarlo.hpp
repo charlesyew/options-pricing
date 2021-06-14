@@ -12,7 +12,7 @@ public:
     double strikePrice; // K
     double spotPrice; // S
     double interestRate; // r
-    double dividendRate; // q
+    double dividendPayment; // q
     double volatility; // sigma
     int maturityDate; // t
     int purchaseDate; // T
@@ -30,5 +30,7 @@ public:
     int optionDuration() const;
 
     double CallPrice();
-
+    double CallPrice2();
+    double CallPrice_Var();
+    double CallPrice_BS();
 };
