@@ -1,7 +1,7 @@
 #define _USE_MATH_DEFINES
 
-#include "BlackScholes.h"
-#include "cdf.h"
+#include "BlackScholes.hpp"
+#include "cdf.hpp"
 
 #include <cassert>
 #include <cfloat>
@@ -32,89 +32,73 @@ double cdf::phi(double x) {
     return 0.5 * (1.0 + sign * y);
 }
 
-double BSEuropeanOption::CallPrice() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-    double d2 = d1 - volatility * sqrt(optionDuration);
-
-    return spotPrice * exp(-dividendRate * optionDuration) * cdf::phi(d1) - strikePrice * exp(-interestRate * optionDuration) * cdf::phi(d2);
+double BSEuropeanOption::optionDuration()  {
+    return maturityDate - purchaseDate;
 }
 
-double BSEuropeanOption::PutPrice() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-    double d2 = d1 - volatility * sqrt(optionDuration);
-
-
-    return strikePrice * exp(-interestRate * optionDuration) * cdf::phi(-d2) - spotPrice * exp(-dividendRate * optionDuration) * cdf::phi(-d1);
+double BSEuropeanOption::d1()  {
+    return (log(spotPrice / strikePrice) + (interestRate - dividendRate + pow(volatility, 2)/2) * (optionDuration())) / (volatility * sqrt(optionDuration()));
 }
 
-double BSEuropeanOption::CallDelta() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
 
-    return exp(-dividendRate * optionDuration) * cdf::phi(d1);
+double BSEuropeanOption::d2()  {
+    return (log(spotPrice / strikePrice) + (interestRate - dividendRate - pow(volatility, 2)/2) * (optionDuration())) / (volatility * sqrt(optionDuration()));
 }
 
-double BSEuropeanOption::PutDelta() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-
-    return -exp(-dividendRate * optionDuration) * cdf::phi(-d1);
+double BSEuropeanOption::CallPrice() {
+    return spotPrice * exp(-dividendRate * optionDuration()) * cdf::phi(d1()) - strikePrice * exp(-interestRate * optionDuration()) * cdf::phi(d2());
 }
 
-double BSEuropeanOption::CallGamma() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-
-    return (exp(-dividendRate * optionDuration) * exp(-pow(d1, 2) / 2)) / (spotPrice * volatility * sqrt(optionDuration) * sqrt(2 * M_PI));
+double BSEuropeanOption::PutPrice()  {
+    return strikePrice * exp(-interestRate * optionDuration()) * cdf::phi(-d2()) - spotPrice * exp(-dividendRate * optionDuration()) * cdf::phi(-d1());
 }
 
-double BSEuropeanOption::PutGamma() const {
+double BSEuropeanOption::CallDelta()  {
+    return exp(-dividendRate * optionDuration()) * cdf::phi(d1());
+}
+
+double BSEuropeanOption::PutDelta()  {
+    return -exp(-dividendRate * optionDuration()) * cdf::phi(-d1());
+}
+
+double BSEuropeanOption::CallGamma()  {
+    return (exp(-dividendRate * optionDuration()) * exp(-pow(d1(), 2) / 2)) / (spotPrice * volatility * sqrt(optionDuration()) * sqrt(2 * M_PI));
+}
+
+double BSEuropeanOption::PutGamma()  {
     return BSEuropeanOption::CallGamma();
 }
 
-double BSEuropeanOption::CallVega() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-
-    return (strikePrice * exp(-dividendRate * optionDuration) * exp(-pow(d1, 2) / 2) * sqrt(optionDuration)) / sqrt(2 * M_PI);
+double BSEuropeanOption::CallVega()  {
+    return (strikePrice * exp(-dividendRate * optionDuration()) * exp(-pow(d1(), 2) / 2) * sqrt(optionDuration())) / sqrt(2 * M_PI);
 }
 
-double BSEuropeanOption::PutVega() const {
+double BSEuropeanOption::PutVega()  {
     return BSEuropeanOption::CallVega();
 }
 
-double BSEuropeanOption::CallTheta() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-    double d2 = d1 - volatility * sqrt(optionDuration);
-
-    return -(strikePrice * volatility * exp(-dividendRate * optionDuration) * exp(-pow(d1, 2) / 2)) / 2 * sqrt(2 * M_PI * optionDuration) + dividendRate * spotPrice * exp(-dividendRate * optionDuration) * cdf::phi(d1) - interestRate * strikePrice * exp(-interestRate * optionDuration) * cdf::phi(d2);
+double BSEuropeanOption::CallTheta()  {
+    return -(strikePrice * volatility * exp(-dividendRate * optionDuration()) * exp(-pow(d1(), 2) / 2)) / 2 * sqrt(2 * M_PI * optionDuration()) + dividendRate * spotPrice * exp(-dividendRate * optionDuration()) * cdf::phi(d1()) - interestRate * strikePrice * exp(-interestRate * optionDuration()) * cdf::phi(d2());
 }
 
-double BSEuropeanOption::PutTheta() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-    double d2 = d1 - volatility * sqrt(optionDuration);
-
-    return -(strikePrice * volatility * exp(-dividendRate * optionDuration) * exp(-pow(d1, 2) / 2)) / 2 * sqrt(2 * M_PI * optionDuration) - dividendRate * spotPrice * exp(-dividendRate * optionDuration) * cdf::phi(d1) + interestRate * strikePrice * exp(-interestRate * optionDuration) * cdf::phi(d2);
+double BSEuropeanOption::PutTheta()  {
+    return -(strikePrice * volatility * exp(-dividendRate * optionDuration()) * exp(-pow(d1(), 2) / 2)) / 2 * sqrt(2 * M_PI * optionDuration()) - dividendRate * spotPrice * exp(-dividendRate * optionDuration()) * cdf::phi(d1()) + interestRate * strikePrice * exp(-interestRate * optionDuration()) * cdf::phi(d2());
 }
 
-double BSEuropeanOption::CallRho() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-    double d2 = d1 - volatility * sqrt(optionDuration);
-
-    return strikePrice * optionDuration * exp(-interestRate * optionDuration) * cdf::phi(d2);
+double BSEuropeanOption::CallRho()  {
+    return strikePrice * optionDuration() * exp(-interestRate * optionDuration()) * cdf::phi(d2());
 }
 
-double BSEuropeanOption::PutRho() const {
-    double optionDuration = maturityDate - purchaseDate;
-    double d1 = (log(spotPrice / strikePrice) + (interestRate + pow(volatility, 2)) * (optionDuration)) / volatility * sqrt(optionDuration);
-    double d2 = d1 - volatility * sqrt(optionDuration);
+double BSEuropeanOption::PutRho()  {
+    return -strikePrice * optionDuration() * exp(-interestRate * optionDuration()) * cdf::phi(-d2());
+}
 
-    return -strikePrice * optionDuration * exp(-interestRate * optionDuration) * cdf::phi(-d2);
+double BSEuropeanOption::impliedVolatility() {
+    return cdf::phi(d1());
+}
+
+double BSEuropeanOption::pExpireITM() {
+    return cdf::phi(d1());
 }
 
 void BSEuropeanOption::init() {
