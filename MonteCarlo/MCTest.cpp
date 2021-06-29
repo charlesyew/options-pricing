@@ -4,23 +4,29 @@
 #include <iostream>
 
 #include "MonteCarlo.hpp"
-#include "BlackScholes/cdf.hpp"
+#include "BSFormula.hpp"
+
 
 using namespace std;
 
 int main()
 {
     MCEuropeanOption callOption;
-    callOption.strikePrice = 100;
-    callOption.spotPrice = 128;
-    callOption.interestRate = 0.12/365;
-    callOption.dividendRate = 0.08;
-    callOption.volatility = 0.08;
-    callOption.maturityDate = 365;
-    callOption.purchaseDate = 30;
+    callOption.strikePrice = 50;
+    callOption.spotPrice = 50;
+    callOption.interestRate = 0.06;
+    callOption.dividendPayment = 0.25;
+    callOption.volatility = 0.25;
+    callOption.maturityDate = 5;
+    callOption.purchaseDate = 0;
+    double S_MC = callOption.CallPrice();
+    double S_BS = callOption.CallPrice_BS();
     cout << "Call Option Parameters: " << endl;
-    cout << "S: " << callOption.spotPrice << "; K: " << callOption.strikePrice << "; r: " << callOption.interestRate << "; q: " << callOption.dividendRate << "; sigma: " << callOption.volatility << "; T: " << callOption.maturityDate << "; t: " << callOption.purchaseDate << endl;
-    cout << "Call Option Price: " << callOption.CallPrice() << endl; // Analytical Price: 29.367
+    cout << "S: " << callOption.spotPrice << "; K: " << callOption.strikePrice << "; r: " << callOption.interestRate << "; q: " << callOption.dividendPayment << "; sigma: " << callOption.volatility << "; T: " << callOption.maturityDate << "; t: " << callOption.purchaseDate << endl;
+    cout << "Call Option Price (Monte Carlo): " << S_MC << endl;
+    //cout << "Call Option Price(Control Variate): " << callOption.CallPrice_Var() << endl; 
+    cout << "Call Option Price (Black Scholes): " << S_BS << endl;
+    cout << "Variance: " << S_MC - S_BS << endl;
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
