@@ -2,7 +2,7 @@
 class BinomEuropeanOption { //parent class for CRR, JR, EQP, TRG binom pricing strategies
 private:
 
-public:
+protected:
     double strikePrice; // K
     double spotPrice; // S
     double interestRate; // r
@@ -12,45 +12,46 @@ public:
     int numIntervals; // n
     
 public:
-    
-    BinomEuropeanOption(int num); //Constructor
-    virtual ~BinomEuropeanOption(); //Destructor
-
     void info();
     int optionDuration() const;
-
+    virtual double CallPrice();
     double CallPrice_BS();
 
+public: 
+    BinomEuropeanOption(int num); //Constructor
+    virtual ~BinomEuropeanOption(); //Destructor
 };
 
 class OptionPriceCRR : public BinomEuropeanOption {
 
-public: 
+private: 
     double jumpUp; // u
     double jumpDown; // d
     double jumpProbability; // p
 
+public: 
     double CallPrice(); 
     double PutPrice();
 
 public:
-    OptionPriceCRR(int num) :BinomEuropeanOption(num) {} //Constructor 
-    virtual ~OptionPriceCRR(); //Destructor
+    OptionPriceCRR(int num); //Constructor 
+    ~OptionPriceCRR(); //Destructor
 }; 
 
 class OptionPriceJR : public BinomEuropeanOption {
 
-public:
+private:
     double jumpUp; // u
     double jumpDown; // d
     double jumpProbability; // p
 
+public: 
     double CallPrice();
     double PutPrice();
 
 public: 
     OptionPriceJR(int num); //Constructor 
-    virtual ~OptionPriceJR(); //Destructor
+    ~OptionPriceJR(); //Destructor
 
 };
 

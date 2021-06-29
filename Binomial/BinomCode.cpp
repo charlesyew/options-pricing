@@ -1,13 +1,13 @@
 #define _USE_MATH_DEFINES
 
 #include "Binomial.hpp"
-#include "BlackScholes/cdf.hpp"
-#include "BlackScholes/BlackScholes.hpp"
+#include "BSFormula.hpp"
 
 #include <iostream>
 #include <cassert>
 #include <cfloat>
 #include <cmath>
+
 
 using namespace std;
 
@@ -33,8 +33,23 @@ int BinomEuropeanOption::optionDuration() const {
     return maturityDate - purchaseDate;
 }
 
-OptionPriceCRR::OptionPriceCRR(int num) {
-    numIntervals = num;
+double BinomEuropeanOption::CallPrice() {
+    return 0;
+}
+
+double BinomEuropeanOption::CallPrice_BS() {
+    BSEuropeanOption BScallOption3;
+    //BScallOption3.strikePrice = 50;
+    //BScallOption3.spotPrice = 50;
+    //BScallOption3.interestRate = 0.06;
+    //BScallOption3.dividendRate = 0;
+    //BScallOption3.volatility = 0.25;
+    //BScallOption3.maturityDate = 5;
+    //BScallOption3.purchaseDate = 0;
+    return BScallOption3.CallPrice();
+}
+
+OptionPriceCRR::OptionPriceCRR(int num) : BinomEuropeanOption(num=1000) {
     double R1 = (interestRate - 0.5 * spotPrice * spotPrice) * strikePrice;
     double R2 = spotPrice * sqrt(strikePrice);
 
@@ -54,8 +69,7 @@ double OptionPriceCRR::PutPrice() {
     return 0;
 }
 
-OptionPriceJR::OptionPriceJR(int num){
-    numIntervals = num;
+OptionPriceJR::OptionPriceJR(int num) : BinomEuropeanOption(num=1000) {
     double T = optionDuration(); // (T - t) years
     double d_T = T / numIntervals;
 
@@ -93,15 +107,3 @@ double OptionPriceJR::PutPrice() {
     return 0;
 }
 
-double BinomEuropeanOption::CallPrice_BS() {
-    BSEuropeanOption BScallOption2;
-    BScallOption2.strikePrice = 50;
-    BScallOption2.spotPrice = 50;
-    BScallOption2.interestRate = 0.06;
-    BScallOption2.dividendRate = 0;
-    BScallOption2.volatility = 0.25;
-    BScallOption2.maturityDate = 5;
-    BScallOption2.purchaseDate = 0;
-    double BS_s = BScallOption2.CallPrice();
-    return BS_s;
-}
