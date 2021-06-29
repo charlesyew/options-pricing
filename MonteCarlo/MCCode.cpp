@@ -1,8 +1,7 @@
 #define _USE_MATH_DEFINES
 
 #include "MonteCarlo.hpp"
-#include "BlackScholes/cdf.hpp"
-#include "BlackScholes/BlackScholes.hpp"
+#include "BSFormula.hpp"
 
 #include <cassert>
 #include <cfloat>
@@ -76,6 +75,7 @@ double MCEuropeanOption::CallPrice() { // Boyle (1977)
 
     return MC_S;
 }
+
 double MCEuropeanOption::CallPrice2() {
     int m = 10000; // # of trials
     double T = optionDuration(); // (T - t) years
