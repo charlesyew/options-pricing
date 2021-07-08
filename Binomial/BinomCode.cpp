@@ -7,11 +7,11 @@
 #include <cassert>
 #include <cfloat>
 #include <cmath>
-
+#include <vector>
 
 using namespace std;
 
-BinomEuropeanOption::BinomEuropeanOption(int num) {
+BinomEuropeanOption::BinomEuropeanOption(int num) { //Initialize Constructor
     this->strikePrice = 50;
     this->spotPrice = 50;
     this->interestRate = 0.06;
@@ -19,8 +19,7 @@ BinomEuropeanOption::BinomEuropeanOption(int num) {
     this->maturityDate = 5;
     this->purchaseDate = 0;
     this->numIntervals = num;
-
-}//Initialize Constructor
+}
 
 BinomEuropeanOption::~BinomEuropeanOption() {} //Initialize Destructor
 
@@ -37,6 +36,10 @@ double BinomEuropeanOption::CallPrice() {
     return 0;
 }
 
+double BinomEuropeanOption::PutPrice() {
+    return 0;
+}
+
 double BinomEuropeanOption::CallPrice_BS() {
     BSEuropeanOption BScallOption3;
     //BScallOption3.strikePrice = 50;
@@ -50,19 +53,42 @@ double BinomEuropeanOption::CallPrice_BS() {
 }
 
 OptionPriceCRR::OptionPriceCRR(int num) : BinomEuropeanOption(num=1000) {
-    double R1 = (interestRate - 0.5 * spotPrice * spotPrice) * strikePrice;
-    double R2 = spotPrice * sqrt(strikePrice);
+    double T = optionDuration(); // (T - t) years
+    double d_T = T / numIntervals;
 
-    this -> jumpUp = exp(R1 + R2);
-    this -> jumpDown = exp(R1 - R2);
-    this -> jumpProbability = 0.5;
+    this->jumpUp = exp(volatility * sqrt(d_T));
+    this->jumpDown = 1.0 / jumpUp;
+    this->jumpProbability = (exp(interestRate * d_T) - jumpDown) / (jumpUp - jumpDown);
 }
 
 OptionPriceCRR::~OptionPriceCRR() {}
 
 double OptionPriceCRR::CallPrice() {
-    double discounting = exp(-interestRate * strikePrice);
-    return 0;
+    double T = optionDuration(); // (T - t) years
+    double d_T = T / numIntervals;
+
+    //forward induction 
+    vector<vector<double>> stockTree(numIntervals+1, vector<double>(numIntervals+1));
+    for (int i = 0; i <= numIntervals; i++) {
+        for (int j = 0; j <= i; j++) {
+            stockTree[i][j] = spotPrice * pow(jumpUp, j) * pow(jumpDown, i-j) ;
+        }
+    }
+    //calculate option value at last node
+    vector<vector<double>> valueTree(numIntervals + 1, vector<double>(numIntervals + 1));
+    for (int j = 0; j <= numIntervals; j++) {
+        valueTree[numIntervals][j] = max(stockTree[numIntervals][j] - strikePrice, 0.);
+    }
+
+    //backward induction 
+    for (int i = numIntervals - 1; i >= 0; i--) {
+        for (int j = 0; j <= i; j++) {
+            valueTree[i][j] = exp(- interestRate * d_T) * (jumpProbability * valueTree[i+1][j+1] + (1- jumpProbability)*valueTree[i+1][j]);
+        }
+    }
+
+    double price = valueTree[0][0]; // retrieve the first element of the list
+    return price ;
 }
 
 double OptionPriceCRR::PutPrice() {
@@ -81,24 +107,29 @@ OptionPriceJR::~OptionPriceJR(){}
 
 double OptionPriceJR::CallPrice() {
     double T = optionDuration(); // (T - t) years
+    double d_T = T / numIntervals;
 
     //forward induction 
-    double* sArr = new double[numIntervals + 1];
-    for (int i = 0; i <= numIntervals; ++i) {
-        sArr[i] = spotPrice * pow(jumpUp, 2 * i - numIntervals) - strikePrice;
-        if (sArr[i] < 0) sArr[i] = 0;
+    vector<vector<double>> stockTree(numIntervals + 1, vector<double>(numIntervals + 1));
+    for (int i = 0; i <= numIntervals; i++) {
+        for (int j = 0; j <= i; j++) {
+            stockTree[i][j] = spotPrice * pow(jumpUp, j) * pow(jumpDown, i - j);
+        }
+    }
+    //calculate option value at last node
+    vector<vector<double>> valueTree(numIntervals + 1, vector<double>(numIntervals + 1));
+    for (int j = 0; j <= numIntervals; j++) {
+        valueTree[numIntervals][j] = max(stockTree[numIntervals][j] - strikePrice, 0.);
     }
 
     //backward induction 
-    for (int j = numIntervals; j >= 0; --j) {
-        for (int i = 0; i <= j; ++i) {
-            sArr[i] = jumpProbability * sArr[i] + (1 - jumpProbability) * sArr[i + 1];
+    for (int i = numIntervals - 1; i >= 0; i--) {
+        for (int j = 0; j <= i; j++) {
+            valueTree[i][j] = exp(-interestRate * d_T) * (jumpProbability * valueTree[i + 1][j + 1] + (1 - jumpProbability) * valueTree[i + 1][j]);
         }
     }
-       
-    double price = sArr[0]; // retrieve the first element of the list
-    delete[] sArr;
-    price *= exp(-interestRate * T);
+
+    double price = valueTree[0][0]; // retrieve the first element of the list
 
     return price;
 }

@@ -1,5 +1,5 @@
 #pragma once
-class BinomEuropeanOption { //parent class for CRR, JR, EQP, TRG binom pricing strategies
+class BinomEuropeanOption { //parent class for CRR, JR, Tian, Leisin-Reimer, EQP, TRG binom pricing strategies
 private:
 
 protected:
@@ -8,13 +8,14 @@ protected:
     double interestRate; // r
     double volatility; // sigma
     int maturityDate; // t
-    int purchaseDate; // T
+    int purchaseDate; // T 
     int numIntervals; // n
     
 public:
     void info();
     int optionDuration() const;
     virtual double CallPrice();
+    virtual double PutPrice();
     double CallPrice_BS();
 
 public: 
@@ -22,7 +23,7 @@ public:
     virtual ~BinomEuropeanOption(); //Destructor
 };
 
-class OptionPriceCRR : public BinomEuropeanOption {
+class OptionPriceCRR : public BinomEuropeanOption { // Cox, Ross, & Rubinstein (1979)
 
 private: 
     double jumpUp; // u
@@ -38,7 +39,7 @@ public:
     ~OptionPriceCRR(); //Destructor
 }; 
 
-class OptionPriceJR : public BinomEuropeanOption {
+class OptionPriceJR : public BinomEuropeanOption { // Jarrow and Rudd (1983)
 
 private:
     double jumpUp; // u
