@@ -12,11 +12,11 @@ using namespace std;
 
 BSEuropeanOption::BSEuropeanOption() {  //Initialize Constructor
     this->strikePrice = 50;
-    this->spotPrice = 50;
-    this->interestRate = 0.06;
-    this->volatility = 0.25;
-    this->dividendRate = 0.0;
-    this->maturityDate = 5;
+    this->spotPrice = 49;
+    this->interestRate = 0.05;
+    this->dividendRate = 0; 
+    this->volatility = 0.20;
+    this->maturityDate = 0.3846;
     this->purchaseDate = 0;
 }
 
@@ -49,7 +49,7 @@ void BSEuropeanOption::info() {
     cout << "S: " << spotPrice << "; K: " << strikePrice << "; r: " << interestRate << "; sigma: " << volatility << "; T: " << maturityDate << "; t: " << purchaseDate << endl;
 }
 
-int BSEuropeanOption::optionDuration() const {
+double BSEuropeanOption::optionDuration() const {
     return maturityDate - purchaseDate;
 }
 
@@ -63,11 +63,11 @@ double BSEuropeanOption::d2() {
 }
 
 double BSEuropeanOption::CallPrice() {
-    return spotPrice * exp(-dividendRate * optionDuration()) * BSEuropeanOption::phi(d1()) - strikePrice * exp(-interestRate * optionDuration()) * cdf::phi(d2());
+    return spotPrice * exp(-dividendRate * optionDuration()) * BSEuropeanOption::phi(d1()) - strikePrice * exp(-interestRate * optionDuration()) * BSEuropeanOption::phi(d2());
 }
 
 double BSEuropeanOption::PutPrice() {
-    return strikePrice * exp(-interestRate * optionDuration()) * BSEuropeanOption::phi(-d2()) - spotPrice * exp(-dividendRate * optionDuration()) * cdf::phi(-d1());
+    return strikePrice * exp(-interestRate * optionDuration()) * BSEuropeanOption::phi(-d2()) - spotPrice * exp(-dividendRate * optionDuration()) * BSEuropeanOption::phi(-d1());
 }
 
 double BSEuropeanOption::CallDelta() {
@@ -95,19 +95,19 @@ double BSEuropeanOption::PutVega() {
 }
 
 double BSEuropeanOption::CallTheta() {
-    return -(strikePrice * volatility * exp(-dividendRate * optionDuration()) * exp(-pow(d1(), 2) / 2)) / 2 * sqrt(2 * M_PI * optionDuration()) + dividendRate * spotPrice * exp(-dividendRate * optionDuration()) * cdf::phi(d1()) - interestRate * strikePrice * exp(-interestRate * optionDuration()) * cdf::phi(d2());
+    return -(strikePrice * volatility * exp(-dividendRate * optionDuration()) * exp(-pow(d1(), 2) / 2)) / 2 * sqrt(2 * M_PI * optionDuration()) + dividendRate * spotPrice * exp(-dividendRate * optionDuration()) * BSEuropeanOption::phi(d1()) - interestRate * strikePrice * exp(-interestRate * optionDuration()) * BSEuropeanOption::phi(d2());
 }
 
 double BSEuropeanOption::PutTheta() {
-    return -(strikePrice * volatility * exp(-dividendRate * optionDuration()) * exp(-pow(d1(), 2) / 2)) / 2 * sqrt(2 * M_PI * optionDuration()) - dividendRate * spotPrice * exp(-dividendRate * optionDuration()) * cdf::phi(d1()) + interestRate * strikePrice * exp(-interestRate * optionDuration()) * cdf::phi(d2());
+    return -(strikePrice * volatility * exp(-dividendRate * optionDuration()) * exp(-pow(d1(), 2) / 2)) / 2 * sqrt(2 * M_PI * optionDuration()) - dividendRate * spotPrice * exp(-dividendRate * optionDuration()) * BSEuropeanOption::phi(d1()) + interestRate * strikePrice * exp(-interestRate * optionDuration()) * BSEuropeanOption::phi(d2());
 }
 
 double BSEuropeanOption::CallRho() {
-    return strikePrice * optionDuration() * exp(-interestRate * optionDuration()) * cdf::phi(d2());
+    return strikePrice * optionDuration() * exp(-interestRate * optionDuration()) * BSEuropeanOption::phi(d2());
 }
 
 double BSEuropeanOption::PutRho() {
-    return -strikePrice * optionDuration() * exp(-interestRate * optionDuration()) * cdf::phi(-d2());
+    return -strikePrice * optionDuration() * exp(-interestRate * optionDuration()) * BSEuropeanOption::phi(-d2());
 }
 
 double BSEuropeanOption::impliedVolatility() {

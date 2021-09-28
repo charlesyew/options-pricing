@@ -7,12 +7,11 @@ protected:
     double interestRate; // r
     double dividendRate; //d
     double volatility; // sigma
-    int maturityDate; // t
-    int purchaseDate; // T 
-    int numIntervals; // n
+    double maturityDate; // t
+    double purchaseDate; // T 
     
 public:
-    int optionDuration() const;
+    double optionDuration() const;
     double phi(double x);
     double d1(); 
     double d2();
